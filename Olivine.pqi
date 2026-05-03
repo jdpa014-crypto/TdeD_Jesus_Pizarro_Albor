@@ -1,0 +1,178 @@
+DATABASE C:\Program Files (x86)\USGS\Phreeqc Interactive 3.8.6-17100\database\phreeqc.dat
+TITLE Olivine dissolution and carbonation (batch kinetic model)
+
+########################################
+# 1. Phases
+########################################
+
+PHASES
+
+Olivine
+    Mg1.8Fe0.2SiO4 + 4H+ = 1.8Mg+2 + 0.2Fe+2 + H4SiO4
+    -log_k    28.306
+    -delta_h  -48.578 kcal
+# Ball & Nordstrom (1991)
+
+Magnesite
+    MgCO3 = Mg+2 + CO3-2
+    -log_k   -8.03
+    -delta_h -7.34 kcal
+# log_k:    Pokrovsky & Schott (1999), Table 4; tomado de
+#           Christ & Hostetler (1970); Nordstrom et al. (1990)
+# delta_h:  Calculado por Ley de Hess:
+#           ?H°rxn = ?H°f(Mg2+) + ?H°f(CO3 2-) - ?H°f(MgCO3)
+#           = (-466.80) + (-677.14) - (-1113.3) = -30.64 kJ/mol = -7.32 kcal/mol
+#           ?H°f(MgCO3): Robie & Hemingway (1995), USGS Bulletin 2131
+#           ?H°f(Mg2+):  Csonka et al. (1979), J. Chem. Thermodynamics 11, 141
+#           ?H°f(CO3 2-): Wagman et al. (1982), NBS Tables, J. Phys. Chem. Ref. Data 11
+
+Siderite
+	FeCO3 = Fe+2 + CO3-2
+	-log_k -10.89
+	-delta_h -2.48 kcal
+	-Vm 29.2
+# PHREEQC database
+
+########################################
+# 2. Rainwater equilibrated with atmosphere
+########################################
+
+SOLUTION 1
+    temp      27
+    pH        5.5
+    units     mol/kgw
+    Alkalinity 0
+
+EQUILIBRIUM_PHASES 1
+    CO2(g)     -3.5       # Atmosfera abierta
+    Magnesite  0.0  0.0
+    Siderite   0.0  0.0
+
+########################################
+# 3. Kinetic rate law
+########################################
+
+RATES
+Olivine # From Palandri & Kharaka (2004)
+-start
+10 moles = 0
+20 IF (M <= 1e-20) THEN GOTO 230
+30 IF (SI("Olivine") >= 0) THEN GOTO 230
+40 IF (M0 <= 0) THEN GOTO 230
+
+50 rssa   = PARM(1)
+60 r_conc = PARM(2)
+70 por    = PARM(3)
+80 afrac  = PARM(4)
+90 vol    = PARM(5)
+100 a0 = rssa * r_conc * afrac / por
+
+110 dif_temp = 1/TK - 1/298.15
+
+120 k_acid = 10^(-6.85)
+130 e_acid = 67.2
+140 n_acid = 0.47
+150 k_neut = 10^(-10.64)
+160 e_neut = 79
+170 hplus  = ACT("H+")
+
+180 r_acid  = k_acid * EXP((-e_acid/8.314e-3)*dif_temp) * (hplus^n_acid)
+190 r_neut  = k_neut * EXP((-e_neut/8.314e-3)*dif_temp)
+200 r_total = r_acid + r_neut
+
+210 rate = (a0/vol) * (M/M0)^0.67 * r_total * (1-SR("Olivine"))
+220 IF (rate * TIME > M) THEN rate = M / TIME * 0.9
+
+230 moles = rate * TIME
+240 SAVE moles
+-end
+
+########################################
+# 4. Kinetic block
+########################################
+
+KINETICS 1
+Olivine # As forsterite — Fo90 (Gleeson et al. 2004)
+    -formula  Mg1.8Fe0.2SiO4 1.0
+    -m0  0.02004
+    -m   0.02004
+    -parms  0.3276 25 0.14 0.1172 1.0
+    -tol  1e-9
+    -steps 189216000 in 2190    # 6 años en pasos de 1 día
+
+INCREMENTAL_REACTIONS true
+
+########################################
+# 5. Selected output
+########################################
+
+SELECTED_OUTPUT
+    -file     Olivine.txt
+    -reset    false
+    -high_precision true
+
+USER_PUNCH
+-headings time_d pH Olivine_mol Magnesite_mol Siderite_mol Mg_molkgx1e5 Fe_molkgx1e5 Si_molkgx1e5 C_molkgx1e5 HCO3_molkgx1e5 MgHCO3_molkgx1e5 FeHCO3_molkgx1e5 CO3_molkgx1e5 CO2aq_molkgx1e5
+-start
+10 t      = TOTAL_TIME / 86400
+20 pH_val = -LA("H+")
+
+# Moles actuales de cada fase mineral
+30 ol_mol  = KIN("Olivine")
+40 mag_mol = EQUI("Magnesite")
+50 sid_mol = EQUI("Siderite")
+
+# Concentraciones de cationes en solución (mol/kg x1e5)
+60 Mg_val  = TOT("Mg") * 1e5
+70 Fe_val  = TOT("Fe") * 1e5
+80 Si_val  = TOT("Si") * 1e5
+90 C_val   = TOT("C")  * 1e5
+
+# Especiación del carbono en solución (mol/kg x1e5)
+100 HCO3_val   = MOL("HCO3-")   * 1e5
+110 MgHCO3_val = MOL("MgHCO3+") * 1e5
+120 FeHCO3_val = MOL("FeHCO3+") * 1e5
+130 CO3_val    = MOL("CO3-2")   * 1e5
+140 CO2aq_val  = MOL("CO2")     * 1e5
+
+150 PUNCH t, pH_val, ol_mol, mag_mol, sid_mol, Mg_val, Fe_val, Si_val, C_val, HCO3_val, MgHCO3_val, FeHCO3_val, CO3_val, CO2aq_val
+-end
+
+########################################
+# 6. User graphs para monitoreo en tiempo real
+########################################
+
+USER_GRAPH 1
+    -chart_title "Mineral moles over time"
+    -axis_titles "Time (years)" "Moles"
+    -axis_scale x_axis 0 6
+    -initial_solutions false
+-start
+10 graph_x TOTAL_TIME / 31536000
+20 graph_y KIN("Olivine")        # olivino restante
+30 graph_y EQUI("Magnesite")     # magnesita precipitada
+40 graph_y EQUI("Siderite")      # siderita precipitada
+-end
+
+USER_GRAPH 2
+    -chart_title "pH over time"
+    -axis_titles "Time (years)" "pH"
+    -axis_scale x_axis 0 6
+    -initial_solutions false
+-start
+10 graph_x TOTAL_TIME / 31536000
+20 graph_y -LA("H+")
+-end
+
+USER_GRAPH 3
+    -chart_title "Mg and Fe in solution"
+    -axis_titles "Time (years)" "mol/kgw x1e5"
+    -axis_scale x_axis 0 6
+    -initial_solutions false
+-start
+10 graph_x TOTAL_TIME / 31536000
+20 graph_y TOT("Mg") * 1e5
+30 graph_y TOT("Fe") * 1e5
+-end
+
+END
