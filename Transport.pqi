@@ -1,0 +1,415 @@
+DATABASE C:\Program Files (x86)\USGS\Phreeqc Interactive 3.8.6-17100\database\phreeqc.dat
+TITLE Peridotite dissolution — reactive transport model (1D column, 20 cells, 5 years)
+# Stequiometry from Gleeson et al. (2004)
+
+########################################
+# 1. PHASES
+########################################
+
+PHASES
+
+Enstatite
+    Mg1.75Fe0.25Si2O6 + 4H+ + 2H2O = 1.75Mg+2 + 0.25Fe+2 + 2H4SiO4
+    -log_k     24.8
+    -delta_h   -12.25 kcal
+# Murphy and Helgeson (1989)
+
+Dolomite
+    CaMg(CO3)2 = Ca+2 + Mg+2 + 2 CO3-2
+    -log_k -17.09
+    -delta_h -9.436 kcal
+    -analytic 31.283 -0.0898 -6438 # 25°C: Hemingway and Robie, 1994; 50-175°C: Bénézeth et al., 2018, GCA 224, 262-275
+    -Vm 64.5
+# PHREEQC database
+
+Olivine # As forsterite
+    Mg1.8Fe0.2SiO4 + 4H+ = 1.8Mg+2 + 0.2Fe+2 + H4SiO4
+    -log_k     28.306
+    -delta_h   -48.578 kcal
+# Ball & Nordstrom (1991)
+
+Lizardite
+    Mg2.6Fe0.4Si2O5(OH)4 + 6H+ = 2.6Mg+2 + 0.4Fe+2 + 2H4SiO4 + H2O
+    -log_k     33.43
+    -delta_h   74 kJ/mol # Werner et al. (2014)
+# (GECO Project, 2021) chemical reaction and logk
+
+Pyrolusite # Instead of Birnessita
+    MnO2:H2O + 4 H+ + 2 e- = Mn+2 + 3 H2O
+    -log_k 41.38
+    -delta_h -65.11 kcal
+# PHREEQC database
+
+Magnesite
+    MgCO3 = Mg+2 + CO3-2
+    -log_k   -8.03
+    -delta_h -7.34 kcal
+# log_k:    Pokrovsky & Schott (1999), Table 4; tomado de
+#           Christ & Hostetler (1970); Nordstrom et al. (1990)
+# delta_h:  Calculado por Ley de Hess:
+#           dH°rxn = dH°f(Mg2+) + dH°f(CO3 2-) - dH°f(MgCO3)
+#           = (-466.80) + (-677.14) - (-1113.3) = -30.64 kJ/mol = -7.32 kcal/mol
+#           dH°f(MgCO3): Robie & Hemingway (1995), USGS Bulletin 2131
+#           dH°f(Mg2+):  Csonka et al. (1979), J. Chem. Thermodynamics 11, 141
+#           dH°f(CO3 2-): Wagman et al. (1982), NBS Tables, J. Phys. Chem. Ref. Data 11
+
+Siderite
+    FeCO3 = Fe+2 + CO3-2
+    -log_k -10.89
+    -delta_h -2.48 kcal
+    -Vm 29.2
+# PHREEQC database
+
+Rhodochrosite
+    MnCO3 = Mn+2 + CO3-2
+    -log_k -11.13
+    -delta_h -1.43 kcal
+    -Vm 31.1
+# PHREEQC database
+
+Aragonite
+    CaCO3 = CO3-2 + Ca+2
+    -log_k -8.336
+    -delta_h -2.589 kcal
+    -analytic -171.9773 -0.077993 2903.293 71.595
+    -Vm 34.04
+# PHREEQC database
+
+Calcite
+    CaCO3 = CO3-2 + Ca+2
+    -log_k -8.48
+    -delta_h -2.297 kcal
+    -analytic 17.118 -0.046528 -3496 # 0-250°C, Ellis, 1959, Plummer and Busenberg, 1982
+    -Vm 36.9 cm3/mol # MW (100.09 g/mol) / rho (2.71 g/cm3)
+# PHREEQC database
+
+########################################
+# 2. SOLUTIONS
+# Celda 0: agua de entrada (lluvia fresca, se renueva cada shift)
+# Celdas 1-20: perfil inicial del suelo (todas iguales)
+########################################
+
+SOLUTION 0          # agua de entrada — lluvia fresca renovada cada shift
+    temp      27    # IDEAM (2006), costa Caribe colombiana
+    pH        5.5   # lluvia tropical costa Caribe (IDEAM, 2006)
+    pe        4     # condiciones moderadamente oxidantes
+    units     mol/kgw
+    Alkalinity 0
+SOLUTION 1-20       # perfil inicial del suelo — 20 celdas de 0.05 m = 1 m total
+    temp      27
+    pH        5.5
+    pe        4
+    units     mol/kgw
+    Alkalinity 0
+
+########################################
+# 3. EQUILIBRIUM_PHASES 1-20
+# Cambios en el pCO2 en función de la profundidad y el DIC
+########################################
+
+EQUILIBRIUM_PHASES 1-2
+    CO2(g)          -3.5    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 3-4
+    CO2(g)          -3.3    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 5-6
+    CO2(g)          -3.1    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 7-8
+    CO2(g)          -2.9    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 9-10
+    CO2(g)          -2.7    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 11-12
+    CO2(g)          -2.5    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 13-14
+    CO2(g)          -2.3    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 15-16
+    CO2(g)          -2.1    # atmosfera abierta ~400 ppm (Friedlingstein et al., 2025)
+    Dolomite        -0.5    0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0    0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+EQUILIBRIUM_PHASES 17-20
+    CO2(g)          -2.0
+    Dolomite        -0.5   0.00217  # tampón geoquímico; cantidad inicial DRX (Ascencio Monroy, 2024)
+    Pyrolusite       0.0   0.02992  # alta reactividad ? equilibrio inmediato; cantidad inicial DRX
+    Magnesite        0.0   0.0       # carbonato secundario Mg
+    Rhodochrosite    0.0   0.0       # carbonato secundario Mn
+    Chalcedony   0.0   0.0    # control Si
+    Fe(OH)3(a)   0.0   0.0    # contro Fe3+
+
+########################################
+# 4. RATES — Palandri & Kharaka (2004)
+########################################
+
+RATES
+
+Olivine
+-start
+10 moles = 0
+20 IF (M <= 1e-20) THEN GOTO 200
+30 IF (SI("Olivine") >= 0) THEN GOTO 200
+
+40 rssa   = PARM(1)
+50 r_conc = PARM(2)
+60 por    = PARM(3)
+70 afrac  = PARM(4)
+80 vol    = PARM(5)
+90 a0 = rssa * r_conc * afrac / por
+
+100 dif_temp = 1/TK - 1/298.15
+
+110 k_acid = 10^(-6.85)
+120 e_acid = 67.2
+130 n_acid = 0.47
+140 k_neut = 10^(-10.64)
+150 e_neut = 79
+160 hplus  = ACT("H+")
+
+170 r_acid  = k_acid * EXP((-e_acid/8.314e-3)*dif_temp) * (hplus^n_acid)
+180 r_neut  = k_neut * EXP((-e_neut/8.314e-3)*dif_temp)
+190 r_total = r_acid + r_neut
+
+200 rate = (a0/vol) * (M/M0)^0.67 * r_total * (1-SR("Olivine"))
+210 moles = rate * TIME
+220 SAVE moles
+-end
+
+Enstatite
+-start
+10 moles = 0
+20 IF (M <= 1e-20) THEN GOTO 200
+30 IF (SI("Enstatite") >= 0) THEN GOTO 200
+
+40 rssa   = PARM(1)
+50 r_conc = PARM(2)
+60 por    = PARM(3)
+70 afrac  = PARM(4)
+80 vol    = PARM(5)
+90 a0 = rssa * r_conc * afrac / por
+
+100 dif_temp = 1/TK - 1/298.15
+
+110 k_acid = 10^(-9.02)
+120 e_acid = 80
+130 n_acid = 0.6
+140 k_neut = 10^(-12.72)
+150 e_neut = 80
+160 hplus  = ACT("H+")
+
+170 r_acid  = k_acid * EXP((-e_acid/8.314e-3)*dif_temp) * (hplus^n_acid)
+180 r_neut  = k_neut * EXP((-e_neut/8.314e-3)*dif_temp)
+190 r_total = r_acid + r_neut
+
+200 rate = (a0/vol) * (M/M0)^0.67 * r_total * (1-SR("Enstatite"))
+210 moles = rate * TIME
+220 SAVE moles
+-end
+
+Lizardite
+-start
+10 moles = 0
+20 IF (M <= 1e-20) THEN GOTO 230
+30 IF (SI("Lizardite") >= 0) THEN GOTO 230
+40 IF (M0 <= 0) THEN GOTO 230
+
+50 rssa   = PARM(1)
+60 r_conc = PARM(2)
+70 por    = PARM(3)
+80 afrac  = PARM(4)
+90 vol    = PARM(5)
+100 a0 = rssa * r_conc * afrac / por
+
+110 dif_temp = 1/TK - 1/298.15
+
+120 k_acid = 10^(-5.70)
+130 e_acid = 75.5
+140 n_acid = 0.8
+150 k_neut = 10^(-12.40)
+160 e_neut = 56.6
+170 hplus  = ACT("H+")
+
+180 r_acid  = k_acid * EXP((-e_acid/8.314e-3)*dif_temp) * (hplus^n_acid)
+190 r_neut  = k_neut * EXP((-e_neut/8.314e-3)*dif_temp)
+200 r_total = r_acid + r_neut
+
+210 rate = (a0/vol) * (M/M0)^0.67 * r_total * (1-SR("Lizardite"))
+220 IF (rate * TIME > M) THEN rate = M / TIME * 0.9
+
+230 moles = rate * TIME
+240 SAVE moles
+-end
+
+########################################
+# 5. KINETICS 1-20
+# Replicado en todas las celdas
+# -steps: 15 días divididos en pasos de 1 día por celda por shift
+# Fórmulas estructurales: EPMA Gleeson et al. (2004), normalización DHZ (1992)
+# Porcentajes modales: DRX Ascencio Monroy (2024)
+# PARMS: SSA=0.252 m2/g (White & Brantley 2003, factor rugosidad ?=100)
+#        r_conc=25 g/L, por=0.14, vol=1 L (Vienne et al. 2022)
+########################################
+
+KINETICS 1-20
+
+Olivine # As forsterite — Fo90 (Gleeson et al. 2004)
+    -formula  Mg1.8Fe0.2SiO4 1.0
+    -m0  0.02004
+    -m   0.02004
+    -parms  0.3276 25 0.14 0.1172 1.0
+    -tol  1e-9
+
+Enstatite # En91 (Gleeson et al. 2004)
+    -formula  Mg1.75Fe0.25Si2O6 1.0
+    -m0  0.03216
+    -m   0.03216
+    -parms  0.3276 25 0.14 0.2738 1.0
+    -tol  1e-9
+
+Lizardite # Lizardita + Antigorita sumadas (Ascencio Monroy 2024)
+    -formula  Mg2.6Fe0.4Si2O5(OH)4 1.0
+    -m0  0.04489
+    -m   0.04489
+    -parms  0.3276 25 0.14 0.489 1.0
+    -tol  1e-9
+
+-steps 1296000 in 15    # 15 días por shift, pasos de 1 día (86400 s)
+INCREMENTAL_REACTIONS true
+
+########################################
+# 6. TRANSPORT
+# 20 celdas de 0.05 m = 1 m de perfil total
+# 100 shifts x 15 días = 1500 días (~5 años, 5 renovaciones del perfil)
+# time_step = 15 días = 1296000 s (velocidad de poro: 0.05m/15d = 3.3 mm/d)
+# Transporte puramente advectivo (dispersividad = 0)
+########################################
+
+TRANSPORT
+    -cells          20
+    -shifts         100
+    -time_step      1296000     # 15 días en segundos (15 × 86400)
+    -lengths        20*0.05     # celdas de 0.05 m — 1 metro total
+    -dispersivities 20*0        # advectivo puro (Vienne et al. 2022)
+    -punch_cells    1-20
+
+########################################
+# 7. SELECTED_OUTPUT y USER_PUNCH
+########################################
+
+SELECTED_OUTPUT
+    -file        Peridotite_transport.txt
+    -reset       false
+    -high_precision true
+
+USER_PUNCH
+-headings shift cell time_d pH Olivine Enstatite Lizardite Magnesite Chalcedony Fe(OH)3 Rhodochrosite Mg Fe Si C HCO3 MgHCO3 FeHCO3 CO3 CO2aq alkalinity
+-start
+10 sh     = STEP_NO                        # número de shift (1-100)
+20 cel    = CELL_NO                        # número de celda (1-20)
+30 t      = STEP_NO * 1296000 / 86400     # tiempo en días (determinista, evita ambigüedad de TOTAL_TIME)
+40 pH_val = -LA("H+")
+
+# Moles actuales de cada fase mineral
+50 ol_mol  = KIN("Olivine")
+60 en_mol  = KIN("Enstatite")
+70 liz_mol = KIN("Lizardite")
+
+80 mag_mol = EQUI("Magnesite")
+90 cal_mol = EQUI("Chalcedony")
+100 fe_mol = EQUI("Fe(OH)3(a)")
+110 rho_mol = EQUI("Rhodochrosite")
+
+# Concentraciones en solución (mol/kg x1e5)
+120 Mg_val  = TOT("Mg") * 1e5
+130 Fe_val  = TOT("Fe") * 1e5
+140 Si_val  = TOT("Si") * 1e5
+150 C_val   = TOT("C")  * 1e5
+
+# Especiación del carbono (mol/kg x1e5)
+160 HCO3_val   = MOL("HCO3-")   * 1e5
+170 MgHCO3_val = MOL("MgHCO3+") * 1e5
+180 FeHCO3_val = MOL("FeHCO3+") * 1e5
+190 CO3_val    = MOL("CO3-2")   * 1e5
+200 CO2aq_val  = MOL("CO2")     * 1e5
+210 alk_val = ALK * 1e3
+
+220 PUNCH sh, cel, t, pH_val, ol_mol, en_mol, liz_mol, mag_mol, cal_mol, fe_mol, rho_mol, Mg_val, Fe_val, Si_val, C_val, HCO3_val, MgHCO3_val, FeHCO3_val, CO3_val, CO2aq_val, alk_val
+-end
+
+########################################
+# 8. USER_GRAPH
+########################################
+
+USER_GRAPH 1
+    -chart_title "Mineral moles over time"
+    -axis_titles "Time (days)" "Moles"
+    -axis_scale x_axis 0 1500
+    -initial_solutions false
+-start
+10 graph_x STEP_NO * 15          # días
+20 graph_y KIN("Olivine")
+30 graph_y EQUI("Magnesite")
+40 graph_y EQUI("Rhodochrosite")
+-end
+
+USER_GRAPH 2
+    -chart_title "pH over time"
+    -axis_titles "Time (days)" "pH"
+    -axis_scale x_axis 0 1500
+    -initial_solutions false
+-start
+10 graph_x STEP_NO * 15
+20 graph_y -LA("H+")
+-end
+
+END
